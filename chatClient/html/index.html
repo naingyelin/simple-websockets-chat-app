@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px Helvetica, Arial;
+        }
+
+        form {
+            background: #000;
+            padding: 3px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        form input {
+            border: 0;
+            padding: 10px;
+            width: 90%;
+            margin-right: .5%;
+        }
+
+        form button {
+            width: 9%;
+            background: rgb(130, 224, 255);
+            border: none;
+            padding: 10px;
+        }
+
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #messages li {
+            padding: 5px 10px;
+        }
+
+        #messages li:nth-child(odd) {
+            background: #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <ul id="messages"></ul>
+    <form action="">
+        <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+    <script type="module">
+        import Sockette from './js/sockette.mjs';
+
+        function createSockette() {
+
+            const wss = new Sockette('wss://1j9ltvm2ck.execute-api.ap-southeast-2.amazonaws.com/Prod', {
+                timeout: 5e3,
+                maxAttempts: 10,
+                onopen: e => console.log('Connected!', e),
+                onmessage: e => {
+                    console.log('Received:', e);
+                    $('#messages').append(`<li>${e.data}</li>`);
+                },
+                onreconnect: e => console.log('Reconnecting...', e),
+                onmaximum: e => {
+                    console.log('Stop Attempting!', e)
+                    if (confirm('Max auto retry count exceeded, try again ?')) {
+                        wss.reconnect();
+                    }
+                },
+                onclose: e => {
+                    wss.close();
+                    console.log('Closed!', e);
+                },
+                onerror: e => {
+                    alert(`Error has occurred ${e}`);
+                    console.log('Error:', e);
+                }
+            });
+            return wss;
+        }
+
+        var appWs = null;
+
+        $(() => {
+            appWs = createSockette();
+            $('form').submit(function (e) {
+                e.preventDefault(); // prevents page reloading
+                var msg = $('#m').val();
+                var request = { message: "sendMessage", data: msg };
+                appWs.json(request);
+                $('#m').val('');
+                return false;
+            });
+        });
+
+    </script>
+</body>
+
+
+</html>
